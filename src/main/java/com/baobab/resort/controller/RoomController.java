@@ -5,27 +5,21 @@ package com.baobab.resort.controller;
  * @created 11/12/2023
  */
 
-import com.baobab.resort.model.BookedRoom;
 import com.baobab.resort.model.Room;
-import com.baobab.resort.payload.BookingResponse;
 import com.baobab.resort.payload.RoomResponse;
 import com.baobab.resort.service.RoomService;
 import lombok.RequiredArgsConstructor;
-import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.sql.rowset.serial.SerialBlob;
 import java.math.BigDecimal;
-import java.sql.Blob;
-import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
+@CrossOrigin("http://localhost:3000") //allowing client application to consume the backed
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/rooms")
@@ -69,7 +63,7 @@ public class RoomController {
 
     @GetMapping("/room/{roomId}")
     public ResponseEntity<RoomResponse> getRoomById(@PathVariable Long roomId) throws Exception {
-        RoomResponse roomResponse = roomService.getRoomById(roomId);
+        RoomResponse roomResponse = roomService.getRoomResponseById(roomId);
         return  ResponseEntity.ok(roomResponse);
     }
 

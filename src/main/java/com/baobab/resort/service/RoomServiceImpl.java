@@ -1,13 +1,16 @@
 package com.baobab.resort.service;
 
+import com.baobab.resort.exception.BaobabAPIException;
 import com.baobab.resort.exception.ResourceNotFoundException;
 import com.baobab.resort.model.BookedRoom;
 import com.baobab.resort.model.Room;
 import com.baobab.resort.payload.BookingResponse;
 import com.baobab.resort.payload.RoomResponse;
+import com.baobab.resort.repository.BookingRepository;
 import com.baobab.resort.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.util.codec.binary.Base64;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,7 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoomServiceImpl implements RoomService{
     private final RoomRepository roomRepository;
-    private final BookingService bookingService;
+    private final BookingRepository bookingRepository;
 
     @Override
     public Room addNewRoom(MultipartFile file, String roomType, BigDecimal roomPrice) throws Exception{
@@ -67,7 +70,7 @@ public class RoomServiceImpl implements RoomService{
 
     @Override
     public byte[] getRoomPhotoByRoomId(Long roomId) throws Exception {
-        Room theRoom = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId));
+        Room theRoom = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId.toString()));
         Blob photoBlob = theRoom.getPhoto();
         if(photoBlob != null){
             return photoBlob.getBytes(1, (int) photoBlob.length());
@@ -77,13 +80,13 @@ public class RoomServiceImpl implements RoomService{
 
     @Override
     public void deleteRoom(Long roomId) {
-        Room theRoom = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId));
+        Room theRoom = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId.toString()));
         roomRepository.deleteById(roomId);
     }
 
     @Override
     public RoomResponse updateRoom(Long roomId, String roomType, BigDecimal roomPrice, MultipartFile photo) throws Exception {
-        Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId));
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId.toString()));
         byte[] photoBytes = photo != null && !photo.isEmpty() ? photo.getBytes() : getRoomPhotoByRoomId(roomId);
         if (roomType != null) room.setRoomType(roomType);
         if (roomPrice != null) room.setRoomPrice(roomPrice);
@@ -95,9 +98,14 @@ public class RoomServiceImpl implements RoomService{
     }
 
     @Override
-    public RoomResponse getRoomById(Long roomId) throws Exception {
-        Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId));
+    public RoomResponse getRoomResponseById(Long roomId) {
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId.toString()));
         return getRoomResponse(room);
+    }
+
+    @Override
+    public Room getRoomById(Long roomId) {
+        return roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId.toString()));
     }
 
     @Override
@@ -117,7 +125,7 @@ public class RoomServiceImpl implements RoomService{
         return roomResponses;
     }
 
-    private RoomResponse getRoomResponse(Room room) throws Exception {
+    private RoomResponse getRoomResponse(Room room) {
         List<BookedRoom> bookings = getAllBookingsByRoomId(room.getId());
         List<BookingResponse> bookingInfo = bookings
                 .stream()
@@ -130,7 +138,7 @@ public class RoomServiceImpl implements RoomService{
             try {
                 photoBytes = photoBlob.getBytes(1, (int) photoBlob.length());
             } catch (SQLException e) {
-                throw new Exception("Error retrieving photo");
+                throw new BaobabAPIException(HttpStatus.BAD_REQUEST,"Error retrieving photo");
             }
         }
         return new RoomResponse(room.getId(),
@@ -139,7 +147,6 @@ public class RoomServiceImpl implements RoomService{
     }
 
     private List<BookedRoom> getAllBookingsByRoomId(Long roomId) {
-        return bookingService.getAllBookingsByRoomId(roomId);
-
+        return bookingRepository.findByRoomId(roomId);
     }
 }
